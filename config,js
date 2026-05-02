@@ -1,0 +1,18 @@
+// --- YAHAN APNE SAARE VIDEO URLS DAALO ---
+// seasonList ke andar objects daalo
+
+const seasonList = [
+    { name: "Season 1", url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
+    { name: "Season 2", url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" },
+    { name: "Season 3", url: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_5MB.mp4" },
+    { name: "Season 4", url: "" },
+    { name: "Season 5", url: "" },
+    { name: "Season 6", url: "" },
+    { name: "Season 7", url: "" },
+    { name: "Season 8", url: "" },
+    { name: "Season 9", url: "" },
+    { name: "Season 10", url: "" } 
+];
+
+// Password ye rahenga
+const hostPassword = "hacker14rk";
