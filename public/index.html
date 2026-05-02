@@ -89,6 +89,7 @@
 
         .toggle-admin {
             text-align: center; margin: 10px; font-size: 0.8rem; color: #666; cursor: pointer;
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -106,7 +107,7 @@
         <div class="grid" id="gallery"></div>
     </section>
 
-    <!-- Upload Section (Admin) -->
+    <!-- Upload Section -->
     <section id="upload" class="section">
         <h2>Upload Video (Admin)</h2>
         <div class="upload-box">
@@ -114,7 +115,6 @@
             <input type="text" id="vidUrl" placeholder="Video URL (.mp4 link)">
             <button onclick="uploadVideo()">Upload to Server</button>
         </div>
-        <p style="color:#666; font-size:0.8rem;">Note: This is a local demo. Videos won't save to database.</p>
     </section>
 
     <!-- Stream Section -->
@@ -128,17 +128,18 @@
             <span>Viewers: <span id="viewerCount">0</span></span>
         </div>
 
+        <!-- Hidden by default, shows only when you are Admin -->
         <div id="adminPanel" style="display:none; margin-top:15px;">
-            <h3>Host Controls</h3>
+            <h3 style="color:#fff; font-size:1rem; margin-bottom:10px;">Host Controls</h3>
             <div class="admin-controls">
                 <button class="control-btn" onclick="adminPlay()">Force Play</button>
                 <button class="control-btn" onclick="adminPause()">Force Pause</button>
             </div>
-            <p style="font-size:0.8rem; color:#666; margin-top:5px;">Only Admin sees these buttons.</p>
         </div>
 
+        <!-- Toggle Button to Switch between Host (Admin) and Viewer -->
         <div class="toggle-admin" onclick="toggleAdminMode()">
-            [I am the Admin - Toggle Controls]
+            Click here to become HOST (Admin)
         </div>
     </section>
 </main>
@@ -156,6 +157,8 @@
     let isAdmin = false;
     const video = document.getElementById('mainVideo');
     const statusText = document.getElementById('statusText');
+    const adminPanel = document.getElementById('adminPanel');
+    const toggleBtn = document.querySelector('.toggle-admin');
     
     // --- Navigation ---
     function show(id) {
@@ -165,8 +168,7 @@
         event.target.classList.add('active');
     }
 
-    // --- Gallery Logic (Mock) ---
-    // Videos list (Hardcoded for demo simplicity)
+    // --- Gallery Logic ---
     const videos = [
         { title: "Big Chill Battle", url: "https://www.w3schools.com/html/mov_bbb.mp4", thumb: "https://picsum.photos/seed/ben1/200/150" },
         { title: "Swampfire Intro", url: "https://www.w3schools.com/html/movie.mp4", thumb: "https://picsum.photos/seed/ben2/200/150" }
@@ -183,39 +185,46 @@
     }
     renderGallery();
 
-    // --- Upload (Mock) ---
+    // --- Upload Logic ---
     function uploadVideo() {
         const title = document.getElementById('vidTitle').value;
         const url = document.getElementById('vidUrl').value;
         if(title && url) {
             videos.push({ title, url, thumb: "https://picsum.photos/seed/new/200/150" });
             renderGallery();
-            alert("Video Added to List (Local only)");
+            alert("Video Added to List!");
             show('home');
         }
     }
 
-    // --- Admin Toggle ---
+    // --- Toggle Admin Mode ---
     function toggleAdminMode() {
         isAdmin = !isAdmin;
-        document.getElementById('adminPanel').style.display = isAdmin ? 'block' : 'none';
-        alert(isAdmin ? "Admin Mode ON: You control the stream." : "Admin Mode OFF");
+        if (isAdmin) {
+            adminPanel.style.display = 'block';
+            toggleBtn.innerText = "You are HOST (Click to exit)";
+            toggleBtn.style.color = "var(--primary-green)";
+            alert("You are now the HOST (Admin). You control the stream.");
+        } else {
+            adminPanel.style.display = 'none';
+            toggleBtn.innerText = "Click here to become HOST (Admin)";
+            toggleBtn.style.color = "#666";
+            alert("You are now a Viewer.");
+        }
     }
 
-    // --- SOCKET EVENTS (The Core Sync Logic) ---
+    // --- SOCKET EVENTS (Sync Logic) ---
 
-    // 1. New User Joining
     socket.on('viewer_count', (count) => {
         document.getElementById('viewerCount').innerText = count;
     });
 
-    // 2. Receiving Current State (When you refresh or join)
     socket.on('sync_state', (data) => {
-        console.log("Syncing state...", data);
+        console.log("Syncing...", data);
         if (data.videoUrl) {
             video.src = data.videoUrl;
             if (data.playing) {
-                video.play();
+                video.play().catch(e => console.log("Interaction needed"));
                 statusText.innerText = "Sync: Playing Live";
             } else {
                 video.pause();
@@ -225,36 +234,42 @@
         }
     });
 
-    // 3. Host changes Video
     socket.on('sync_video', (data) => {
-        console.log("New video signal received");
+        console.log("New video signal");
         video.src = data.url;
-        video.play().catch(e => console.log("Waiting for interaction"));
+        video.play().catch(e => console.log("Autoplay blocked"));
         statusText.innerText = "Sync: New Video Started";
     });
 
-    // 4. Host Pauses
     socket.on('sync_pause', () => {
         video.pause();
         statusText.innerText = "Sync: Paused by Host";
     });
 
-    // 5. Host Updates Time (Seeking)
     socket.on('sync_time', (data) => {
-        // Math.abs check taaki loop na ban jaye agar thoda sa time difference ho
         if (Math.abs(video.currentTime - data.time) > 1) {
             video.currentTime = data.time;
         }
     });
 
-    // --- ACTIONS (Sending to Server) ---
+    // --- ACTIONS ---
 
     function playVideo(url) {
+        // --- IMPORTANT CHANGE HERE ---
+        // Maine yahan Admin Check HATA DIYA HAI.
+        // Ab koi bhi click karega to signal server jayegi.
+        
         if (!isAdmin) {
-            alert("You are not the Admin. Only Admin can start the stream.");
+            // Agar aap Admin nahi hain, to khud play kar lo, lekin server ko signal mat bhejo
+            // Taaki aapke actions se sabki video bigad na jaye.
+            console.log("Viewer watching locally...");
+            video.src = url;
+            video.play();
+            show('stream');
             return;
         }
-        // Admin playing video
+
+        // Agar Admin hai, to server ko signal bhejo
         socket.emit('admin_play', { url: url });
         show('stream');
     }
@@ -267,7 +282,7 @@
         socket.emit('admin_pause');
     }
 
-    // Automatic time syncing from Admin to Server
+    // Time Syncing
     video.addEventListener('timeupdate', () => {
         if (isAdmin && !video.paused) {
             socket.emit('admin_time_update', { time: video.currentTime });
@@ -275,7 +290,5 @@
     });
 
 </script>
-</body>
-</html>
 </body>
 </html>
