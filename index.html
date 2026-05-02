@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ben 10 Stream (Fixed)</title>
+    <title>Ben 10 Stream (Fixed Size)</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root { --green: #00ff41; --dark: #000; }
@@ -16,7 +16,7 @@
         .card { background: #1a1a1a; padding: 30px; border: 1px solid #333; width: 90%; max-width: 380px; text-align: center; border-radius: 8px; }
         h2 { color: var(--green); margin-bottom: 20px; text-transform: uppercase; }
         
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; font-size: 1rem; box-sizing: border-box; outline: none; }
+        input { width: 100%; padding: 10px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; font-size: 1rem; box-sizing: border-box; }
         
         button { width: 100%; padding: 15px; margin-top: 15px; background: var(--green); border: none; color: #000; font-weight: bold; cursor: pointer; text-transform: uppercase; border-radius: 4px; }
         button:hover { background: #fff; }
@@ -37,15 +37,60 @@
         .screen { width: 100%; max-width: 1000px; aspect-ratio: 16/9; background: #000; border: 1px solid #333; }
         video { width: 100%; height: 100%; object-fit: contain; }
 
-        /* Host Controls (URL Input) - Ab Dikhega */
-        .host-controls { padding: 15px; background: #0a0a0a; border-top: 1px solid var(--green); display: none; /* Default Hidden */ justify-content: center; align-items: center; gap: 10px; }
-        .url-input { flex: 1; padding: 10px; background: #000; border: 1px solid #444; color: #fff; font-size: 0.9rem; }
-        
-        .common-controls { padding: 15px; background: #0a0a0a; display: flex; justify-content: center; gap: 15px; }
-        .control-btn { background: #222; border: 1px solid #444; color: #fff; padding: 10px 20px; cursor: pointer; font-size: 0.9rem; border-radius: 4px; }
+        /* --- FIXED CONTROLS --- */
+        .controls-wrapper {
+            padding: 15px;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-top: 1px solid #222;
+        }
+
+        /* URL Input Box (Compact) */
+        .url-box {
+            display: none; /* Pehle chupa rahega, Host hone pe dikhega */
+            width: 80%;       /* 80% width, poori nahi */
+            max-width: 600px; /* Maximum size limit */
+            margin-bottom: 15px;
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+
+        .url-input {
+            width: 100%;
+            background: #000;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            box-sizing: border-box; /* Important for padding calculation */
+        }
+
+        .load-btn {
+            margin-top: 5px;
+            width: 100%;
+            padding: 10px;
+            background: var(--green);
+            border: none;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .common-controls { display: flex; gap: 10px; }
+        .control-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 15px; cursor: pointer; font-size: 0.8rem; border-radius: 4px; }
         .control-btn:hover { border-color: var(--green); color: var(--green); }
 
-        @media (max-width: 600px) { .screen { height: 40vh; } }
+        @media (max-width: 600px) { 
+            .screen { height: 40vh; } 
+            .url-box { width: 95%; }
+        }
     </style>
 </head>
 <body>
@@ -60,7 +105,7 @@
             <!-- Host Password Area -->
             <div id="host-pass-box" class="input-group">
                 <label>Host Password</label>
-                <!-- type="password" likha hai, isliye dots dikhega screen pe -->
+                <!-- type="password" ab dots dega -->
                 <input type="password" id="host-pass" placeholder="••••••••">
                 <button onclick="verifyHost()">Login as Host</button>
                 <button class="secondary" onclick="cancelLogin()">Back</button>
@@ -89,16 +134,18 @@
             </div>
         </div>
 
-        <!-- Host URL Input Box (Yahan change kiya) -->
-        <div class="host-controls" id="host-tools">
-            <input type="text" id="video-url" class="url-input" placeholder="Paste Season Video Link Here...">
-            <button class="control-btn" style="background:var(--green); color:#000;" onclick="updateUrlAndPlay()">LOAD & PLAY</button>
-        </div>
+        <div class="controls-wrapper">
+            <!-- URL Input Box (Ab Chhota hoga) -->
+            <div class="url-box" id="host-tools">
+                <input type="text" id="video-url" class="url-input" placeholder="Paste Season Video Link Here...">
+                <button class="load-btn" onclick="updateUrlAndPlay()">LOAD & PLAY</button>
+            </div>
 
-        <div class="common-controls">
-            <button class="control-btn" onclick="syncAction('play')">▶ Play</button>
-            <button class="control-btn" onclick="syncAction('pause')">⏸ Pause</button>
-            <button class="control-btn" onclick="syncAction('next')">Next Season</button>
+            <div class="common-controls">
+                <button class="control-btn" onclick="syncAction('play')">▶ Play</button>
+                <button class="control-btn" onclick="syncAction('pause')">⏸ Pause</button>
+                <button class="control-btn" onclick="syncAction('next')">Next Season</button>
+            </div>
         </div>
     </div>
 
@@ -122,7 +169,6 @@
             peer = new Peer(null, { debug: 2 });
 
             peer.on('open', (id) => {
-                console.log("My ID: " + id);
                 if(isHost) {
                     alert("Host ID hai ye: " + id);
                     connStatus.innerText = "Hosting: " + id;
@@ -173,7 +219,7 @@
                 isHost = true;
                 loginPage.style.display = 'none';
                 streamPage.style.display = 'flex';
-                hostTools.style.display = 'flex'; // <--- Yahan change kiya (Ab box dikhayega)
+                hostTools.style.display = 'block'; // Yahan dikh rahe hain controls
                 initPeer();
             } else {
                 alert("Wrong Password!");
