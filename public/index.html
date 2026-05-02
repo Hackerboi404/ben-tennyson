@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ben 10 Live Stream Hub</title>
+    <style>
+        /* Ben 10 Theme Styles */
+        :root {
+            --primary-green: #00ff00;
+            --dark-green: #0a4d0a;
+            --bg-black: #050505;
+            --panel-bg: #111111;
+            --text-color: #e0e0e0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-black); color: var(--text-color); padding-bottom: 70px; }
+
+        header {
+            background: linear-gradient(180deg, #001100 0%, #000 100%);
+            border-bottom: 2px solid var(--primary-green);
+            padding: 15px;
+            text-align: center;
+        }
+
+        .logo { color: var(--primary-green); font-weight: 900; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary-green); }
+        
+        .omnitrix {
+            display: inline-block; width: 30px; height: 30px; 
+            background: var(--primary-green); 
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            margin-right: 10px; animation: spin 10s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Sections */
+        .section { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .section.active { display: block; }
+
+        h2 { color: #fff; margin-bottom: 15px; border-left: 4px solid var(--primary-green); padding-left: 10px; }
+
+        /* Upload Form */
+        .upload-box { background: #1a1a1a; padding: 15px; border: 1px solid #333; border-radius: 8px; margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin: 5px 0 15px; background: #000; border: 1px solid #444; color: #fff; }
+        button { width: 100%; padding: 12px; background: var(--dark-green); color: var(--primary-green); border: 1px solid var(--primary-green); font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        button:hover { background: var(--primary-green); color: #000; }
+
+        /* Gallery Grid */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        .card { background: #111; border: 1px solid #333; border-radius: 5px; overflow: hidden; cursor: pointer; }
+        .card img { width: 100%; height: 80px; object-fit: cover; }
+        .card div { padding: 8px; font-size: 0.8rem; }
+
+        /* Stream Player */
+        .player-wrapper {
+            background: #000;
+            width: 100%;
+            aspect-ratio: 16/9;
+            border: 2px solid var(--primary-green);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        video { width: 100%; height: 100%; }
+
+        .status-bar {
+            display: flex; justify-content: space-between;
+            background: #111; padding: 10px; margin-top: 10px; border-radius: 5px;
+            font-family: monospace; color: var(--primary-green);
+        }
+
+        /* Admin Controls */
+        .admin-controls {
+            display: flex; gap: 10px; margin-top: 10px;
+        }
+        .control-btn { flex: 1; font-size: 0.8rem; padding: 8px; }
+
+        /* Bottom Nav */
+        nav {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: #000; border-top: 1px solid #333;
+            display: flex; justify-content: space-around; padding: 10px 0;
+        }
+        .nav-btn { background: none; border: none; color: #888; font-size: 0.8rem; cursor: pointer; }
+        .nav-btn.active { color: var(--primary-green); }
+
+        .toggle-admin {
+            text-align: center; margin: 10px; font-size: 0.8rem; color: #666; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="omnitrix"></div>
+    <div class="logo">Ben 10 Live Sync</div>
+</header>
+
+<main>
+    <!-- Home Section -->
+    <section id="home" class="section active">
+        <h2>Episodes</h2>
+        <div class="grid" id="gallery"></div>
+    </section>
+
+    <!-- Upload Section (Admin) -->
+    <section id="upload" class="section">
+        <h2>Upload Video (Admin)</h2>
+        <div class="upload-box">
+            <input type="text" id="vidTitle" placeholder="Episode Name">
+            <input type="text" id="vidUrl" placeholder="Video URL (.mp4 link)">
+            <button onclick="uploadVideo()">Upload to Server</button>
+        </div>
+        <p style="color:#666; font-size:0.8rem;">Note: This is a local demo. Videos won't save to database.</p>
+    </section>
+
+    <!-- Stream Section -->
+    <section id="stream" class="section">
+        <div class="player-wrapper">
+            <video id="mainVideo" controls></video>
+        </div>
+        
+        <div class="status-bar">
+            <span id="statusText">Waiting for host...</span>
+            <span>Viewers: <span id="viewerCount">0</span></span>
+        </div>
+
+        <div id="adminPanel" style="display:none; margin-top:15px;">
+            <h3>Host Controls</h3>
+            <div class="admin-controls">
+                <button class="control-btn" onclick="adminPlay()">Force Play</button>
+                <button class="control-btn" onclick="adminPause()">Force Pause</button>
+            </div>
+            <p style="font-size:0.8rem; color:#666; margin-top:5px;">Only Admin sees these buttons.</p>
+        </div>
+
+        <div class="toggle-admin" onclick="toggleAdminMode()">
+            [I am the Admin - Toggle Controls]
+        </div>
+    </section>
+</main>
+
+<nav>
+    <button class="nav-btn active" onclick="show('home')">Home</button>
+    <button class="nav-btn" onclick="show('upload')">Upload</button>
+    <button class="nav-btn" onclick="show('stream')">Stream</button>
+</nav>
+
+<!-- Socket.io Client Script -->
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    let isAdmin = false;
+    const video = document.getElementById('mainVideo');
+    const statusText = document.getElementById('statusText');
+    
+    // --- Navigation ---
+    function show(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    // --- Gallery Logic (Mock) ---
+    // Videos list (Hardcoded for demo simplicity)
+    const videos = [
+        { title: "Big Chill Battle", url: "https://www.w3schools.com/html/mov_bbb.mp4", thumb: "https://picsum.photos/seed/ben1/200/150" },
+        { title: "Swampfire Intro", url: "https://www.w3schools.com/html/movie.mp4", thumb: "https://picsum.photos/seed/ben2/200/150" }
+    ];
+
+    function renderGallery() {
+        const grid = document.getElementById('gallery');
+        grid.innerHTML = videos.map(v => `
+            <div class="card" onclick="playVideo('${v.url}')">
+                <img src="${v.thumb}">
+                <div>${v.title}</div>
+            </div>
+        `).join('');
+    }
+    renderGallery();
+
+    // --- Upload (Mock) ---
+    function uploadVideo() {
+        const title = document.getElementById('vidTitle').value;
+        const url = document.getElementById('vidUrl').value;
+        if(title && url) {
+            videos.push({ title, url, thumb: "https://picsum.photos/seed/new/200/150" });
+            renderGallery();
+            alert("Video Added to List (Local only)");
+            show('home');
+        }
+    }
+
+    // --- Admin Toggle ---
+    function toggleAdminMode() {
+        isAdmin = !isAdmin;
+        document.getElementById('adminPanel').style.display = isAdmin ? 'block' : 'none';
+        alert(isAdmin ? "Admin Mode ON: You control the stream." : "Admin Mode OFF");
+    }
+
+    // --- SOCKET EVENTS (The Core Sync Logic) ---
+
+    // 1. New User Joining
+    socket.on('viewer_count', (count) => {
+        document.getElementById('viewerCount').innerText = count;
+    });
+
+    // 2. Receiving Current State (When you refresh or join)
+    socket.on('sync_state', (data) => {
+        console.log("Syncing state...", data);
+        if (data.videoUrl) {
+            video.src = data.videoUrl;
+            if (data.playing) {
+                video.play();
+                statusText.innerText = "Sync: Playing Live";
+            } else {
+                video.pause();
+                statusText.innerText = "Sync: Paused";
+            }
+            video.currentTime = data.time;
+        }
+    });
+
+    // 3. Host changes Video
+    socket.on('sync_video', (data) => {
+        console.log("New video signal received");
+        video.src = data.url;
+        video.play().catch(e => console.log("Waiting for interaction"));
+        statusText.innerText = "Sync: New Video Started";
+    });
+
+    // 4. Host Pauses
+    socket.on('sync_pause', () => {
+        video.pause();
+        statusText.innerText = "Sync: Paused by Host";
+    });
+
+    // 5. Host Updates Time (Seeking)
+    socket.on('sync_time', (data) => {
+        // Math.abs check taaki loop na ban jaye agar thoda sa time difference ho
+        if (Math.abs(video.currentTime - data.time) > 1) {
+            video.currentTime = data.time;
+        }
+    });
+
+    // --- ACTIONS (Sending to Server) ---
+
+    function playVideo(url) {
+        if (!isAdmin) {
+            alert("You are not the Admin. Only Admin can start the stream.");
+            return;
+        }
+        // Admin playing video
+        socket.emit('admin_play', { url: url });
+        show('stream');
+    }
+
+    function adminPlay() {
+        socket.emit('admin_play', { url: video.src || videos[0].url });
+    }
+
+    function adminPause() {
+        socket.emit('admin_pause');
+    }
+
+    // Automatic time syncing from Admin to Server
+    video.addEventListener('timeupdate', () => {
+        if (isAdmin && !video.paused) {
+            socket.emit('admin_time_update', { time: video.currentTime });
+        }
+    });
+
+</script>
+</body>
+</html>
+</body>
+</html>
