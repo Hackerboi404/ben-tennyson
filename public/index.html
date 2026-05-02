@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ben 10 Live Stream Hub</title>
+    <title>Ben 10 Live Stream Hub (Proxy Enabled)</title>
     <style>
-        /* Ben 10 Theme Styles */
         :root {
             --primary-green: #00ff00;
             --dark-green: #0a4d0a;
@@ -13,7 +12,6 @@
             --panel-bg: #111111;
             --text-color: #e0e0e0;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background-color: var(--bg-black); color: var(--text-color); padding-bottom: 70px; }
 
@@ -23,37 +21,28 @@
             padding: 15px;
             text-align: center;
         }
-
         .logo { color: var(--primary-green); font-weight: 900; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px var(--primary-green); }
-        
         .omnitrix {
             display: inline-block; width: 30px; height: 30px; 
-            background: var(--primary-green); 
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            background: var(--primary-green); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             margin-right: 10px; animation: spin 10s linear infinite;
         }
-
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* Sections */
         .section { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
         .section.active { display: block; }
-
         h2 { color: #fff; margin-bottom: 15px; border-left: 4px solid var(--primary-green); padding-left: 10px; }
 
-        /* Upload Form */
         .upload-box { background: #1a1a1a; padding: 15px; border: 1px solid #333; border-radius: 8px; margin-bottom: 20px; }
         input { width: 100%; padding: 10px; margin: 5px 0 15px; background: #000; border: 1px solid #444; color: #fff; }
         button { width: 100%; padding: 12px; background: var(--dark-green); color: var(--primary-green); border: 1px solid var(--primary-green); font-weight: bold; cursor: pointer; text-transform: uppercase; }
         button:hover { background: var(--primary-green); color: #000; }
 
-        /* Gallery Grid */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
         .card { background: #111; border: 1px solid #333; border-radius: 5px; overflow: hidden; cursor: pointer; }
         .card img { width: 100%; height: 80px; object-fit: cover; }
         .card div { padding: 8px; font-size: 0.8rem; }
 
-        /* Stream Player */
         .player-wrapper {
             background: #000;
             width: 100%;
@@ -63,22 +52,15 @@
             overflow: hidden;
             position: relative;
         }
-
         video { width: 100%; height: 100%; }
-
         .status-bar {
             display: flex; justify-content: space-between;
             background: #111; padding: 10px; margin-top: 10px; border-radius: 5px;
             font-family: monospace; color: var(--primary-green);
         }
-
-        /* Admin Controls */
-        .admin-controls {
-            display: flex; gap: 10px; margin-top: 10px;
-        }
+        .admin-controls { display: flex; gap: 10px; margin-top: 10px; }
         .control-btn { flex: 1; font-size: 0.8rem; padding: 8px; }
 
-        /* Bottom Nav */
         nav {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: #000; border-top: 1px solid #333;
@@ -86,11 +68,7 @@
         }
         .nav-btn { background: none; border: none; color: #888; font-size: 0.8rem; cursor: pointer; }
         .nav-btn.active { color: var(--primary-green); }
-
-        .toggle-admin {
-            text-align: center; margin: 10px; font-size: 0.8rem; color: #666; cursor: pointer;
-            text-decoration: underline;
-        }
+        .toggle-admin { text-align: center; margin: 10px; font-size: 0.8rem; color: #666; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -112,7 +90,7 @@
         <h2>Upload Video (Admin)</h2>
         <div class="upload-box">
             <input type="text" id="vidTitle" placeholder="Episode Name">
-            <input type="text" id="vidUrl" placeholder="Video URL (.mp4 link)">
+            <input type="text" id="vidUrl" placeholder="Google Drive / TeraBox / Direct Link">
             <button onclick="uploadVideo()">Upload to Server</button>
         </div>
     </section>
@@ -128,7 +106,6 @@
             <span>Viewers: <span id="viewerCount">0</span></span>
         </div>
 
-        <!-- Hidden by default, shows only when you are Admin -->
         <div id="adminPanel" style="display:none; margin-top:15px;">
             <h3 style="color:#fff; font-size:1rem; margin-bottom:10px;">Host Controls</h3>
             <div class="admin-controls">
@@ -137,7 +114,6 @@
             </div>
         </div>
 
-        <!-- Toggle Button to Switch between Host (Admin) and Viewer -->
         <div class="toggle-admin" onclick="toggleAdminMode()">
             Click here to become HOST (Admin)
         </div>
@@ -150,15 +126,12 @@
     <button class="nav-btn" onclick="show('stream')">Stream</button>
 </nav>
 
-<!-- Socket.io Client Script -->
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
     let isAdmin = false;
     const video = document.getElementById('mainVideo');
     const statusText = document.getElementById('statusText');
-    const adminPanel = document.getElementById('adminPanel');
-    const toggleBtn = document.querySelector('.toggle-admin');
     
     // --- Navigation ---
     function show(id) {
@@ -169,9 +142,9 @@
     }
 
     // --- Gallery Logic ---
-    const videos = [
-        { title: "Big Chill Battle", url: "https://www.w3schools.com/html/mov_bbb.mp4", thumb: "https://picsum.photos/seed/ben1/200/150" },
-        { title: "Swampfire Intro", url: "https://www.w3schools.com/html/movie.mp4", thumb: "https://picsum.photos/seed/ben2/200/150" }
+    // Videos list (Empty start karenge, user add karega)
+    let videos = [
+        { title: "Sample: Big Buck Bunny", url: "https://www.w3schools.com/html/mov_bbb.mp4", thumb: "https://picsum.photos/seed/ben1/200/150" }
     ];
 
     function renderGallery() {
@@ -192,39 +165,40 @@
         if(title && url) {
             videos.push({ title, url, thumb: "https://picsum.photos/seed/new/200/150" });
             renderGallery();
-            alert("Video Added to List!");
+            alert("Video Added to List! Now play it as Host.");
             show('home');
         }
     }
 
-    // --- Toggle Admin Mode ---
+    // --- Toggle Admin ---
     function toggleAdminMode() {
         isAdmin = !isAdmin;
-        if (isAdmin) {
-            adminPanel.style.display = 'block';
-            toggleBtn.innerText = "You are HOST (Click to exit)";
-            toggleBtn.style.color = "var(--primary-green)";
-            alert("You are now the HOST (Admin). You control the stream.");
-        } else {
-            adminPanel.style.display = 'none';
-            toggleBtn.innerText = "Click here to become HOST (Admin)";
-            toggleBtn.style.color = "#666";
-            alert("You are now a Viewer.");
-        }
+        document.getElementById('adminPanel').style.display = isAdmin ? 'block' : 'none';
+        document.querySelector('.toggle-admin').innerText = isAdmin ? "You are HOST (Click to exit)" : "Click here to become HOST (Admin)";
+        alert(isAdmin ? "Host Mode Activated" : "Host Mode Deactivated");
     }
 
-    // --- SOCKET EVENTS (Sync Logic) ---
+    // --- PROXY LOGIC HELPER ---
+    // Ye check karega ki kya proxy use karna hai ya nahi
+    function getProxiedUrl(originalUrl) {
+        if (!originalUrl) return '';
+        // Google Drive, TeraBox, ya jo direct https na ho
+        if (originalUrl.includes('drive.google.com') || originalUrl.includes('terabox') || originalUrl.includes('1024terabox')) {
+            return '/proxy-video?url=' + encodeURIComponent(originalUrl);
+        }
+        return originalUrl;
+    }
 
-    socket.on('viewer_count', (count) => {
-        document.getElementById('viewerCount').innerText = count;
-    });
+    // --- SOCKET EVENTS ---
+    socket.on('viewer_count', (count) => document.getElementById('viewerCount').innerText = count);
 
     socket.on('sync_state', (data) => {
-        console.log("Syncing...", data);
         if (data.videoUrl) {
-            video.src = data.videoUrl;
+            // Proxy URL use karke load karein
+            video.src = getProxiedUrl(data.videoUrl);
+            
             if (data.playing) {
-                video.play().catch(e => console.log("Interaction needed"));
+                video.play().catch(e => console.log("Play blocked"));
                 statusText.innerText = "Sync: Playing Live";
             } else {
                 video.pause();
@@ -235,8 +209,9 @@
     });
 
     socket.on('sync_video', (data) => {
-        console.log("New video signal");
-        video.src = data.url;
+        console.log("New video signal received");
+        // Proxy URL use karke load karein
+        video.src = getProxiedUrl(data.url);
         video.play().catch(e => console.log("Autoplay blocked"));
         statusText.innerText = "Sync: New Video Started";
     });
@@ -253,23 +228,15 @@
     });
 
     // --- ACTIONS ---
-
     function playVideo(url) {
-        // --- IMPORTANT CHANGE HERE ---
-        // Maine yahan Admin Check HATA DIYA HAI.
-        // Ab koi bhi click karega to signal server jayegi.
-        
         if (!isAdmin) {
-            // Agar aap Admin nahi hain, to khud play kar lo, lekin server ko signal mat bhejo
-            // Taaki aapke actions se sabki video bigad na jaye.
-            console.log("Viewer watching locally...");
-            video.src = url;
+            // Viewer Mode: Sirf khud dekho
+            video.src = getProxiedUrl(url);
             video.play();
             show('stream');
             return;
         }
-
-        // Agar Admin hai, to server ko signal bhejo
+        // Admin Mode: Sab ko bhejo
         socket.emit('admin_play', { url: url });
         show('stream');
     }
@@ -282,7 +249,7 @@
         socket.emit('admin_pause');
     }
 
-    // Time Syncing
+    // Admin time sync logic
     video.addEventListener('timeupdate', () => {
         if (isAdmin && !video.paused) {
             socket.emit('admin_time_update', { time: video.currentTime });
