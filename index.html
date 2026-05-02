@@ -3,125 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ben 10 Stream (Fixed Size)</title>
+    <title>Ben 10 Final Stream</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- IMPORTANT: Config file yahan load ho raha hai -->
+    <script src="config.js"></script>
     <style>
         :root { --green: #00ff41; --dark: #000; }
-        body { background: var(--dark); color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+        body { background: var(--dark); color: #fff; font-family: sans-serif; height: 100vh; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* --- Login Page --- */
+        /* --- LOGIN PAGE --- */
         #login-page {
-            flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, #111 0%, #000 100%);
+            flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #111;
         }
-        .card { background: #1a1a1a; padding: 30px; border: 1px solid #333; width: 90%; max-width: 380px; text-align: center; border-radius: 8px; }
-        h2 { color: var(--green); margin-bottom: 20px; text-transform: uppercase; }
+        .card { background: #222; padding: 30px; border: 1px solid #444; width: 90%; max-width: 350px; text-align: center; border-radius: 10px; }
+        h2 { color: var(--green); margin: 0 0 20px 0; text-transform: uppercase; }
         
-        input { width: 100%; padding: 10px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; font-size: 1rem; box-sizing: border-box; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; font-size: 1rem; box-sizing: border-box; }
         
-        button { width: 100%; padding: 15px; margin-top: 15px; background: var(--green); border: none; color: #000; font-weight: bold; cursor: pointer; text-transform: uppercase; border-radius: 4px; }
+        button { width: 100%; padding: 15px; margin-top: 15px; background: var(--green); border: none; color: #000; font-weight: bold; cursor: pointer; text-transform: uppercase; border-radius: 5px; }
         button:hover { background: #fff; }
-        button.secondary { background: #333; color: #fff; margin-top: 10px; padding: 12px; font-size: 0.9rem; }
+        button.secondary { background: #333; color: #fff; margin-top: 10px; font-size: 0.9rem; padding: 12px; }
         button.secondary:hover { background: #555; }
 
-        .input-group { text-align: left; margin-top: 15px; border-top: 1px solid #333; padding-top: 15px; display: none; }
-        label { display: block; color: #888; font-size: 0.85rem; margin-bottom: 5px; }
+        .input-group { text-align: left; margin-top: 15px; border-top: 1px solid #444; padding-top: 15px; display: none; }
         
-        /* --- Stream Page --- */
+        /* --- STREAM PAGE --- */
         #stream-page { display: none; flex: 1; flex-direction: column; }
         
-        .top-bar { height: 45px; background: #0a0a0a; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #222; font-size: 0.9rem; }
-        .status-dot { width: 10px; height: 10px; background: #555; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .top-bar { height: 40px; background: #0a0a0a; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .status-dot { width: 8px; height: 8px; background: #555; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .status-dot.live { background: var(--green); }
         
-        .video-area { flex: 1; display: flex; justify-content: center; align-items: center; padding: 10px; position: relative; }
-        .screen { width: 100%; max-width: 1000px; aspect-ratio: 16/9; background: #000; border: 1px solid #333; }
+        .video-area { flex: 1; display: flex; justify-content: center; align-items: center; padding: 10px; }
+        .screen { width: 100%; max-width: 900px; aspect-ratio: 16/9; background: #000; border: 1px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
         video { width: 100%; height: 100%; object-fit: contain; }
 
-        /* --- FIXED CONTROLS --- */
-        .controls-wrapper {
-            padding: 15px;
-            background: #0a0a0a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border-top: 1px solid #222;
-        }
+        .controls { padding: 15px; background: #0a0a0a; display: flex; flex-direction: column; align-items: center; gap: 15px; border-top: 1px solid #222; }
+        
+        /* Season Select Dropdown (New) */
+        .season-selector { width: 80%; max-width: 500px; display: none; }
+        select { width: 100%; padding: 10px; background: #000; border: 1px solid #333; color: #fff; font-size: 1rem; }
+        
+        .url-box { width: 80%; max-width: 500px; display: none; } /* Manual URL hide kar diya, dropdown use hoga */
+        .url-input { width: 100%; padding: 8px; background: #000; border: 1px solid #333; color: #fff; }
+        .play-btn { margin-top: 5px; width: 100%; background: var(--green); color: #000; border: none; padding: 8px; cursor: pointer; font-weight: bold; }
 
-        /* URL Input Box (Compact) */
-        .url-box {
-            display: none; /* Pehle chupa rahega, Host hone pe dikhega */
-            width: 80%;       /* 80% width, poori nahi */
-            max-width: 600px; /* Maximum size limit */
-            margin-bottom: 15px;
-            background: #111;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #333;
-        }
+        .btn-group { display: flex; gap: 10px; }
+        .ctrl-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 15px; cursor: pointer; }
+        .ctrl-btn:hover { border-color: var(--green); color: var(--green); }
 
-        .url-input {
-            width: 100%;
-            background: #000;
-            border: 1px solid #444;
-            color: #fff;
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            box-sizing: border-box; /* Important for padding calculation */
-        }
-
-        .load-btn {
-            margin-top: 5px;
-            width: 100%;
-            padding: 10px;
-            background: var(--green);
-            border: none;
-            color: #000;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        .common-controls { display: flex; gap: 10px; }
-        .control-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 15px; cursor: pointer; font-size: 0.8rem; border-radius: 4px; }
-        .control-btn:hover { border-color: var(--green); color: var(--green); }
-
-        @media (max-width: 600px) { 
-            .screen { height: 40vh; } 
-            .url-box { width: 95%; }
-        }
+        @media (max-width: 600px) { .screen { height: 40vh; } }
     </style>
 </head>
 <body>
 
-    <!-- 1. LOGIN / MENU -->
+    <!-- 1. LOGIN -->
     <div id="login-page">
         <div class="card">
             <h2>Ben 10 Theater</h2>
             <button onclick="showHost()">HOST STREAM</button>
             <button class="secondary" onclick="showJoin()">JOIN STREAM</button>
 
-            <!-- Host Password Area -->
             <div id="host-pass-box" class="input-group">
-                <label>Host Password</label>
-                <!-- type="password" ab dots dega -->
+                <label>Password:</label>
                 <input type="password" id="host-pass" placeholder="••••••••">
-                <button onclick="verifyHost()">Login as Host</button>
+                <button onclick="verifyHost()">LOGIN</button>
                 <button class="secondary" onclick="cancelLogin()">Back</button>
             </div>
 
-            <!-- Join ID Area -->
             <div id="join-id-box" class="input-group">
-                <label>Host ID</label>
+                <label>Host ID:</label>
                 <input type="text" id="join-id" placeholder="Paste ID here...">
-                <button onclick="connectToHost()">Join Now</button>
+                <button onclick="connectToHost()">JOIN</button>
                 <button class="secondary" onclick="cancelLogin()">Back</button>
             </div>
         </div>
     </div>
 
-    <!-- 2. STREAMING INTERFACE -->
+    <!-- 2. STREAM -->
     <div id="stream-page">
         <div class="top-bar">
             <div><span class="status-dot" id="dot"></span> <span id="conn-status">Offline</span></div>
@@ -134,70 +93,84 @@
             </div>
         </div>
 
-        <div class="controls-wrapper">
-            <!-- URL Input Box (Ab Chhota hoga) -->
-            <div class="url-box" id="host-tools">
-                <input type="text" id="video-url" class="url-input" placeholder="Paste Season Video Link Here...">
-                <button class="load-btn" onclick="updateUrlAndPlay()">LOAD & PLAY</button>
+        <div class="controls">
+            <!-- Season Dropdown (Host ke liye) -->
+            <div class="season-selector" id="season-tools">
+                <select id="season-select" onchange="playSelectedSeason()">
+                    <option value="">-- Select Season --</option>
+                    <!-- JS se options aayenge -->
+                </select>
+                <div style="font-size:0.8rem; color:#888; margin-top:5px;">Season change karega aur sabko dikhega.</div>
             </div>
 
-            <div class="common-controls">
-                <button class="control-btn" onclick="syncAction('play')">▶ Play</button>
-                <button class="control-btn" onclick="syncAction('pause')">⏸ Pause</button>
-                <button class="control-btn" onclick="syncAction('next')">Next Season</button>
+            <div class="btn-group">
+                <button class="ctrl-btn" onclick="syncAction('play')">▶</button>
+                <button class="ctrl-btn" onclick="syncAction('pause')">⏸</button>
+                <button class="ctrl-btn" onclick="syncAction('next')">Next</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- VARIABLES ---
         let peer = null;
         let connections = [];
         let isHost = false;
-        const password = "hacker14rk";
+        // Password ab config.js se aayega
         
         const loginPage = document.getElementById('login-page');
         const streamPage = document.getElementById('stream-page');
         const video = document.getElementById('main-video');
         const connStatus = document.getElementById('conn-status');
         const statusDot = document.getElementById('dot');
-        const hostTools = document.getElementById('host-tools');
+        const seasonTools = document.getElementById('season-tools');
         const viewerCount = document.getElementById('viewer-count');
+        const seasonSelect = document.getElementById('season-select');
 
-        // --- INIT PEER ---
+        // Populate Season Dropdown
+        function populateSeasons() {
+            seasonList.forEach((season, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.text = season.name;
+                seasonSelect.appendChild(option);
+            });
+        }
+
+        // Init Peer
         function initPeer() {
-            peer = new Peer(null, { debug: 2 });
+            peer = new Peer(null, { debug: 0 });
 
             peer.on('open', (id) => {
                 if(isHost) {
-                    alert("Host ID hai ye: " + id);
                     connStatus.innerText = "Hosting: " + id;
                     statusDot.classList.add('live');
-                    viewerCount.innerText = "Viewers: 1 (You)";
+                    viewerCount.innerText = "Viewers: 1";
                 }
             });
 
             peer.on('connection', (conn) => {
-                handleConnection(conn);
+                connections.push(conn);
+                conn.on('open', () => {
+                    if(isHost) viewerCount.innerText = "Viewers: " + (connections.length + 1);
+                });
+                conn.on('data', (data) => {
+                    if(data.action === 'play') video.play();
+                    if(data.action === 'pause') video.pause();
+                    if(data.action === 'loadUrl') {
+                        video.src = data.url;
+                        video.play();
+                    }
+                    if(data.action === 'selectSeason') {
+                        seasonSelect.selectedIndex = data.index;
+                        const season = seasonList[data.index];
+                        video.src = season.url;
+                        video.play();
+                    }
+                });
             });
         }
 
-        function handleConnection(conn) {
-            connections.push(conn);
-            conn.on('open', () => {
-                if(isHost) viewerCount.innerText = "Viewers: " + (connections.length + 1);
-            });
-            conn.on('data', (data) => {
-                if(data.action === 'play') video.play();
-                if(data.action === 'pause') video.pause();
-                if(data.action === 'loadUrl') {
-                    video.src = data.url;
-                    video.play();
-                }
-            });
-        }
-
-        // --- UI FUNCTIONS ---
+        // UI Logic
         function showHost() {
             document.querySelector('#host-pass-box').style.display = 'block';
             document.querySelector('#join-id-box').style.display = 'none';
@@ -214,12 +187,12 @@
         }
 
         function verifyHost() {
-            const passInput = document.getElementById('host-pass').value;
-            if(passInput === password) {
+            if(document.getElementById('host-pass').value === hostPassword) {
                 isHost = true;
                 loginPage.style.display = 'none';
                 streamPage.style.display = 'flex';
-                hostTools.style.display = 'block'; // Yahan dikh rahe hain controls
+                seasonTools.style.display = 'block'; // Dropdown dikhao
+                populateSeasons(); // Dropdown bhar lo
                 initPeer();
             } else {
                 alert("Wrong Password!");
@@ -227,8 +200,8 @@
         }
 
         function connectToHost() {
-            const hostId = document.getElementById('join-id').value;
-            if(!hostId) return alert("ID daalo!");
+            const id = document.getElementById('join-id').value;
+            if(!id) return alert("ID daalo!");
 
             isHost = false;
             loginPage.style.display = 'none';
@@ -236,8 +209,8 @@
             initPeer();
 
             peer.on('open', () => {
-                const conn = peer.connect(hostId);
-                handleConnection(conn);
+                const conn = peer.connect(id);
+                connections.push(conn);
                 conn.on('open', () => {
                     connStatus.innerText = "Connected";
                     statusDot.classList.add('live');
@@ -245,25 +218,32 @@
             });
         }
 
-        // --- ACTIONS ---
+        // Actions
         function syncAction(action) {
             if(action === 'play') video.play();
             if(action === 'pause') video.pause();
 
             if(isHost) {
-                connections.forEach(conn => { conn.send({ action: action }); });
+                connections.forEach(c => c.send({ action: action }));
             }
         }
 
-        function updateUrlAndPlay() {
-            const url = document.getElementById('video-url').value;
-            if(!url) return alert("URL daalo!");
+        // New: Season Change Logic
+        function playSelectedSeason() {
+            const index = seasonSelect.value;
+            if(index === "") return;
 
-            video.src = url;
+            const season = seasonList[index];
+            if(!season.url) {
+                alert("Is season ka link config.js me nahi hai!");
+                return;
+            }
+
+            video.src = season.url;
             video.play();
 
             if(isHost) {
-                connections.forEach(conn => { conn.send({ action: 'loadUrl', url: url }); });
+                connections.forEach(c => c.send({ action: 'selectSeason', index: index }));
             }
         }
     </script>
