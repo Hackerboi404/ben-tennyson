@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ben 10 Stream (Fixed)</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root { --green: #00ff41; --dark: #000; }
+        body { background: var(--dark); color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* --- Login Page --- */
+        #login-page {
+            flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, #111 0%, #000 100%);
+        }
+        .card { background: #1a1a1a; padding: 30px; border: 1px solid #333; width: 90%; max-width: 380px; text-align: center; border-radius: 8px; }
+        h2 { color: var(--green); margin-bottom: 20px; text-transform: uppercase; }
+        
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; font-size: 1rem; box-sizing: border-box; outline: none; }
+        
+        button { width: 100%; padding: 15px; margin-top: 15px; background: var(--green); border: none; color: #000; font-weight: bold; cursor: pointer; text-transform: uppercase; border-radius: 4px; }
+        button:hover { background: #fff; }
+        button.secondary { background: #333; color: #fff; margin-top: 10px; padding: 12px; font-size: 0.9rem; }
+        button.secondary:hover { background: #555; }
+
+        .input-group { text-align: left; margin-top: 15px; border-top: 1px solid #333; padding-top: 15px; display: none; }
+        label { display: block; color: #888; font-size: 0.85rem; margin-bottom: 5px; }
+        
+        /* --- Stream Page --- */
+        #stream-page { display: none; flex: 1; flex-direction: column; }
+        
+        .top-bar { height: 45px; background: #0a0a0a; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .status-dot { width: 10px; height: 10px; background: #555; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-dot.live { background: var(--green); }
+        
+        .video-area { flex: 1; display: flex; justify-content: center; align-items: center; padding: 10px; position: relative; }
+        .screen { width: 100%; max-width: 1000px; aspect-ratio: 16/9; background: #000; border: 1px solid #333; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+
+        /* Host Controls (URL Input) - Ab Dikhega */
+        .host-controls { padding: 15px; background: #0a0a0a; border-top: 1px solid var(--green); display: none; /* Default Hidden */ justify-content: center; align-items: center; gap: 10px; }
+        .url-input { flex: 1; padding: 10px; background: #000; border: 1px solid #444; color: #fff; font-size: 0.9rem; }
+        
+        .common-controls { padding: 15px; background: #0a0a0a; display: flex; justify-content: center; gap: 15px; }
+        .control-btn { background: #222; border: 1px solid #444; color: #fff; padding: 10px 20px; cursor: pointer; font-size: 0.9rem; border-radius: 4px; }
+        .control-btn:hover { border-color: var(--green); color: var(--green); }
+
+        @media (max-width: 600px) { .screen { height: 40vh; } }
+    </style>
+</head>
+<body>
+
+    <!-- 1. LOGIN / MENU -->
+    <div id="login-page">
+        <div class="card">
+            <h2>Ben 10 Theater</h2>
+            <button onclick="showHost()">HOST STREAM</button>
+            <button class="secondary" onclick="showJoin()">JOIN STREAM</button>
+
+            <!-- Host Password Area -->
+            <div id="host-pass-box" class="input-group">
+                <label>Host Password</label>
+                <!-- type="password" likha hai, isliye dots dikhega screen pe -->
+                <input type="password" id="host-pass" placeholder="••••••••">
+                <button onclick="verifyHost()">Login as Host</button>
+                <button class="secondary" onclick="cancelLogin()">Back</button>
+            </div>
+
+            <!-- Join ID Area -->
+            <div id="join-id-box" class="input-group">
+                <label>Host ID</label>
+                <input type="text" id="join-id" placeholder="Paste ID here...">
+                <button onclick="connectToHost()">Join Now</button>
+                <button class="secondary" onclick="cancelLogin()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. STREAMING INTERFACE -->
+    <div id="stream-page">
+        <div class="top-bar">
+            <div><span class="status-dot" id="dot"></span> <span id="conn-status">Offline</span></div>
+            <div id="viewer-count">Viewers: 0</div>
+        </div>
+
+        <div class="video-area">
+            <div class="screen">
+                <video id="main-video" controls></video>
+            </div>
+        </div>
+
+        <!-- Host URL Input Box (Yahan change kiya) -->
+        <div class="host-controls" id="host-tools">
+            <input type="text" id="video-url" class="url-input" placeholder="Paste Season Video Link Here...">
+            <button class="control-btn" style="background:var(--green); color:#000;" onclick="updateUrlAndPlay()">LOAD & PLAY</button>
+        </div>
+
+        <div class="common-controls">
+            <button class="control-btn" onclick="syncAction('play')">▶ Play</button>
+            <button class="control-btn" onclick="syncAction('pause')">⏸ Pause</button>
+            <button class="control-btn" onclick="syncAction('next')">Next Season</button>
+        </div>
+    </div>
+
+    <script>
+        // --- VARIABLES ---
+        let peer = null;
+        let connections = [];
+        let isHost = false;
+        const password = "hacker14rk";
+        
+        const loginPage = document.getElementById('login-page');
+        const streamPage = document.getElementById('stream-page');
+        const video = document.getElementById('main-video');
+        const connStatus = document.getElementById('conn-status');
+        const statusDot = document.getElementById('dot');
+        const hostTools = document.getElementById('host-tools');
+        const viewerCount = document.getElementById('viewer-count');
+
+        // --- INIT PEER ---
+        function initPeer() {
+            peer = new Peer(null, { debug: 2 });
+
+            peer.on('open', (id) => {
+                console.log("My ID: " + id);
+                if(isHost) {
+                    alert("Host ID hai ye: " + id);
+                    connStatus.innerText = "Hosting: " + id;
+                    statusDot.classList.add('live');
+                    viewerCount.innerText = "Viewers: 1 (You)";
+                }
+            });
+
+            peer.on('connection', (conn) => {
+                handleConnection(conn);
+            });
+        }
+
+        function handleConnection(conn) {
+            connections.push(conn);
+            conn.on('open', () => {
+                if(isHost) viewerCount.innerText = "Viewers: " + (connections.length + 1);
+            });
+            conn.on('data', (data) => {
+                if(data.action === 'play') video.play();
+                if(data.action === 'pause') video.pause();
+                if(data.action === 'loadUrl') {
+                    video.src = data.url;
+                    video.play();
+                }
+            });
+        }
+
+        // --- UI FUNCTIONS ---
+        function showHost() {
+            document.querySelector('#host-pass-box').style.display = 'block';
+            document.querySelector('#join-id-box').style.display = 'none';
+        }
+
+        function showJoin() {
+            document.querySelector('#join-id-box').style.display = 'block';
+            document.querySelector('#host-pass-box').style.display = 'none';
+        }
+
+        function cancelLogin() {
+            document.querySelector('#host-pass-box').style.display = 'none';
+            document.querySelector('#join-id-box').style.display = 'none';
+        }
+
+        function verifyHost() {
+            const passInput = document.getElementById('host-pass').value;
+            if(passInput === password) {
+                isHost = true;
+                loginPage.style.display = 'none';
+                streamPage.style.display = 'flex';
+                hostTools.style.display = 'flex'; // <--- Yahan change kiya (Ab box dikhayega)
+                initPeer();
+            } else {
+                alert("Wrong Password!");
+            }
+        }
+
+        function connectToHost() {
+            const hostId = document.getElementById('join-id').value;
+            if(!hostId) return alert("ID daalo!");
+
+            isHost = false;
+            loginPage.style.display = 'none';
+            streamPage.style.display = 'flex';
+            initPeer();
+
+            peer.on('open', () => {
+                const conn = peer.connect(hostId);
+                handleConnection(conn);
+                conn.on('open', () => {
+                    connStatus.innerText = "Connected";
+                    statusDot.classList.add('live');
+                });
+            });
+        }
+
+        // --- ACTIONS ---
+        function syncAction(action) {
+            if(action === 'play') video.play();
+            if(action === 'pause') video.pause();
+
+            if(isHost) {
+                connections.forEach(conn => { conn.send({ action: action }); });
+            }
+        }
+
+        function updateUrlAndPlay() {
+            const url = document.getElementById('video-url').value;
+            if(!url) return alert("URL daalo!");
+
+            video.src = url;
+            video.play();
+
+            if(isHost) {
+                connections.forEach(conn => { conn.send({ action: 'loadUrl', url: url }); });
+            }
+        }
+    </script>
+</body>
+</html>
