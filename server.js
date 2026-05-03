@@ -1,31 +1,57 @@
 const express = require('express');
+const axios = require('axios');
 const app = express();
-const http = require('http');
-const { createProxyMiddleware } = require('http-proxy-middleware'); // Ye naya package hai
-const server = http.createServer(app);
-const io = require('socket.io')(server, {
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
     cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// Static files serve karna
 app.use(express.static('public'));
 
-// --- NEW: VIDEO PROXY (Yeh Google Drive ke rok ko hatayega) ---
-app.use('/proxy-video', createProxyMiddleware({
-    target: (proxyReqOpts, srcReq) => {
-        // URL se original destination nikalna
-        const url = srcReq.query.url;
-        return url;
-    },
-    changeOrigin: true,
-    pathRewrite: {
-        '^/proxy-video': '', // URL se /proxy-video hata dega
-    },
-    onProxyReq: (proxyReq, req, res) => {
-        // Google Drive ke liye User-Agent badalna zaroori hai
-        proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+// --- GOOGLE DRIVE & TERABOX STREAMING PROXY ---
+// Ye route video ko server ke through pass karega taaki CORS error na aaye
+app.get('/stream', async (req, res) => {
+    const videoUrl = req.query.url;
+    
+    if (!videoUrl) {
+        return res.status(400).send('URL parameter is required');
     }
-}));
+
+    try {
+        // Google Drive link ko convert karna
+        let finalUrl = videoUrl;
+        
+        if (videoUrl.includes('drive.google.com')) {
+            // ID nikalna
+            const idMatch = videoUrl.match(/\/d\/(.*?)\//);
+            if (idMatch && idMatch[1]) {
+                const id = idMatch[1];
+                finalUrl = `https://drive.google.com/uc?export=download&id=${id}`;
+            }
+        } else if (videoUrl.includes('terabox')) {
+            // TeraBox direct link kaam nahi karta server side easily, 
+            // isliye wo error dega.
+            return res.status(400).send("TeraBox is not supported via Proxy. Please use Google Drive.");
+        }
+
+        console.log(`Proxying: ${finalUrl}`);
+
+        // Video ko fetch karna
+        const response = await axios({
+            method: 'get',
+            url: finalUrl,
+            responseType: 'stream'
+        });
+
+        // Headers set karna taaki browser ko lage video file hai
+        res.setHeader('Content-Type', 'video/mp4');
+        response.data.pipe(res);
+
+    } catch (error) {
+        console.error('Stream Error:', error.message);
+        res.status(500).send('Error loading video');
+    }
+});
 
 // --- STATE VARIABLES ---
 let currentVideo = null;
@@ -68,6 +94,7 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(process.env.PORT || 3000, () => {
-    console.log(`Server running on port ${process.env.PORT || 3000}`);
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
