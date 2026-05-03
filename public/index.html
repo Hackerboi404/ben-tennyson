@@ -117,11 +117,11 @@
         <h2>Upload Video (Admin)</h2>
         <div class="upload-box">
             <input type="text" id="vidTitle" placeholder="Episode Name">
-            <input type="text" id="vidUrl" placeholder="Google Drive / Direct Link (.mp4)">
+            <input type="text" id="vidUrl" placeholder="Direct Video Link (.mp4)">
             <button onclick="uploadVideo()">Upload to Server</button>
         </div>
         <p style="font-size:0.8rem; color:#666; margin-top:10px;">
-            Note: TeraBox may not work. Use Google Drive links for best results.
+            Note: Use Direct MP4 Links. Google Drive may not work directly.
         </p>
     </section>
 
@@ -173,9 +173,9 @@
     }
 
     // --- Gallery Logic ---
-    // Default Sample Video
+    // Default Sample Video (Direct Link)
     let videos = [
-        { title: "Sample: Big Buck Bunny", url: "https://www.w3schools.com/html/mov_bbb.mp4", thumb: "https://picsum.photos/seed/ben1/200/150" }
+        { title: "Test: Subaru Car", url: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4", thumb: "https://picsum.photos/seed/ben1/200/150" }
     ];
 
     function renderGallery() {
@@ -196,7 +196,7 @@
         if(title && url) {
             videos.push({ title, url, thumb: "https://picsum.photos/seed/new/200/150" });
             renderGallery();
-            alert("Video Added! Now play it as Host.");
+            alert("Video Added!");
             show('home');
         }
     }
@@ -209,14 +209,9 @@
         alert(isAdmin ? "Host Mode Activated" : "Host Mode Deactivated");
     }
 
-    // --- STREAM URL HELPER (PROXY LOGIC) ---
+    // --- STREAM URL HELPER (SIMPLE VERSION - NO PROXY) ---
     function getStreamUrl(url) {
-        // Agar Google Drive hai, to server ke /stream route use karo
-        if (url.includes('drive.google.com')) {
-            console.log("Using Proxy for Google Drive");
-            return '/stream?url=' + encodeURIComponent(url);
-        }
-        // TeraBox ya direct links ke liye
+        // Ab hum link ko waisa ka waisa return kar denge, koi change nahi karenge
         return url;
     }
 
@@ -225,7 +220,6 @@
 
     socket.on('sync_state', (data) => {
         if (data.videoUrl) {
-            // Proxy URL check karke load karein
             video.src = getStreamUrl(data.videoUrl);
             
             if (data.playing) {
@@ -241,7 +235,6 @@
 
     socket.on('sync_video', (data) => {
         console.log("New video signal received");
-        // Proxy URL use karke load karein
         video.src = getStreamUrl(data.url);
         video.play().catch(e => console.log("Autoplay blocked"));
         statusText.innerText = "Sync: New Video Started";
@@ -261,13 +254,13 @@
     // --- ACTIONS ---
     function playVideo(url) {
         if (!isAdmin) {
-            // Viewer Mode: Khud hi play karo
+            // Viewer Mode
             video.src = getStreamUrl(url);
             video.play();
             show('stream');
             return;
         }
-        // Admin Mode: Sab ko signal bhejo
+        // Admin Mode
         socket.emit('admin_play', { url: url });
         show('stream');
     }
@@ -280,8 +273,7 @@
         socket.emit('admin_pause');
     }
 
-    // --- ADMIN SYNC LOGIC ---
-    // Jab Admin video dekh raha hai, to wo time update karta rehta hai
+    // Admin time sync
     video.addEventListener('timeupdate', () => {
         if (isAdmin && !video.paused) {
             socket.emit('admin_time_update', { time: video.currentTime });
